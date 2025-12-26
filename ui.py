@@ -49,7 +49,7 @@ st.divider()
 # ==============================
 # FASTAPI URL
 # ==============================
-API_URL = "http://127.0.0.1:8000/predict"
+API_URL = "https://personality-predictor-7xm4.onrender.com"
 
 # ==============================
 # SLIDER HELPER
@@ -294,3 +294,4 @@ if st.button("✨ Reveal My Personality"):
         "personality_card.gif",
         "image/gif"
     )
+
