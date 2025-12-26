@@ -278,14 +278,14 @@ if st.button("✨ Reveal My Personality"):
     st.json(response.json())
     st.stop()
 
-data = response.json()
+    data = response.json()
 
-if "predicted_personality" not in data:
+    if "predicted_personality" not in data:
     st.error("❌ Invalid API response")
     st.json(data)
     st.stop()
 
-personality = data["predicted_personality"]
+    personality = data["predicted_personality"]
 
 
     score = round(
@@ -307,5 +307,6 @@ personality = data["predicted_personality"]
         "personality_card.gif",
         "image/gif"
     )
+
 
 
