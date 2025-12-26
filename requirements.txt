@@ -1,0 +1,9 @@
+streamlit
+fastapi
+uvicorn
+tensorflow
+numpy
+pillow
+requests
+pydantic
+scikit-learn
