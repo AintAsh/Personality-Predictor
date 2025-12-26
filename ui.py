@@ -273,7 +273,20 @@ if st.button("✨ Reveal My Personality"):
     }
 
     response = requests.post(API_URL, json=payload)
-    personality = response.json()["predicted_personality"]
+    if response.status_code != 200:
+    st.error("❌ Prediction API error")
+    st.json(response.json())
+    st.stop()
+
+data = response.json()
+
+if "predicted_personality" not in data:
+    st.error("❌ Invalid API response")
+    st.json(data)
+    st.stop()
+
+personality = data["predicted_personality"]
+
 
     score = round(
         (social_energy + creativity + leadership + adventurousness + talkativeness) / 5 * 10,
@@ -294,4 +307,5 @@ if st.button("✨ Reveal My Personality"):
         "personality_card.gif",
         "image/gif"
     )
+
 
