@@ -39,7 +39,7 @@ h1, h2, h3 {
 # ==============================
 # HEADER
 # ==============================
-st.markdown("<h1 style='text-align:center;'>🧠 Personality AI</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align:center;'>🧠 Personality AI</h1>", unsafe (True))
 st.markdown(
     "<p style='text-align:center;'>Discover your personality • Trading-card style ✨</p>",
     unsafe_allow_html=True
@@ -47,9 +47,9 @@ st.markdown(
 st.divider()
 
 # ==============================
-# FASTAPI URL
+# FASTAPI URL (RENDER)
 # ==============================
-API_URL = "https://personality-predictor-7xm4.onrender.com"
+API_URL = "https://personality-predictor-7xm4.onrender.com/predict"
 
 # ==============================
 # SLIDER HELPER
@@ -58,7 +58,7 @@ def vibe_slider(label):
     return st.slider(label, 0, 10, 5, step=1)
 
 # ==============================
-# INPUTS (12 CLEAN SLIDERS)
+# INPUTS (12 SLIDERS)
 # ==============================
 c1, c2, c3 = st.columns(3)
 
@@ -134,7 +134,7 @@ def personality_theme(personality):
     return themes.get(personality, ((120, 120, 120), (200, 200, 200)))
 
 # ==============================
-# TEXT WRAPPING
+# TEXT WRAPPING (FONT SAFE)
 # ==============================
 def draw_wrapped_text(draw, text, x, y, font, max_width, gap=6):
     words = text.split()
@@ -146,11 +146,11 @@ def draw_wrapped_text(draw, text, x, y, font, max_width, gap=6):
             line = test
         else:
             draw.text((x, y), line, fill=(235, 235, 235), font=font)
-            y += font.size + gap
+            y += 32 + gap
             line = word + " "
     if line:
         draw.text((x, y), line, fill=(235, 235, 235), font=font)
-        y += font.size + gap
+        y += 32 + gap
     return y
 
 # ==============================
@@ -216,7 +216,6 @@ def generate_animated_gif_card(personality, score, summary, points):
 
         for p in points:
             y = draw_wrapped_text(draw, f"• {p}", x + 10, y, text_f, max_w)
-            y += 6
 
         draw.text((x, H - 80), f"RARITY: {rarity}", fill=rarity_color, font=small_f)
         draw.text((W - 260, H - 80), "Made by Om", fill=(200, 255, 255), font=small_f)
@@ -224,14 +223,8 @@ def generate_animated_gif_card(personality, score, summary, points):
         frames.append(img)
 
     buffer = io.BytesIO()
-    frames[0].save(
-        buffer,
-        format="GIF",
-        save_all=True,
-        append_images=frames[1:],
-        duration=120,
-        loop=0
-    )
+    frames[0].save(buffer, format="GIF", save_all=True,
+                   append_images=frames[1:], duration=120, loop=0)
     buffer.seek(0)
     return buffer
 
@@ -272,7 +265,13 @@ if st.button("✨ Reveal My Personality"):
         "stress_handling": stress_handling
     }
 
-    response = requests.post(API_URL, json=payload)
+    try:
+        response = requests.post(API_URL, json=payload, timeout=20)
+    except requests.exceptions.RequestException as e:
+        st.error("❌ Could not connect to prediction API")
+        st.write(str(e))
+        st.stop()
+
     if response.status_code != 200:
         st.error("❌ Prediction API error")
         st.json(response.json())
@@ -286,7 +285,6 @@ if st.button("✨ Reveal My Personality"):
         st.stop()
 
     personality = data["predicted_personality"]
-
 
     score = round(
         (social_energy + creativity + leadership + adventurousness + talkativeness) / 5 * 10,
