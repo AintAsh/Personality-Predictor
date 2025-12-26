@@ -274,16 +274,16 @@ if st.button("✨ Reveal My Personality"):
 
     response = requests.post(API_URL, json=payload)
     if response.status_code != 200:
-    st.error("❌ Prediction API error")
-    st.json(response.json())
-    st.stop()
+        st.error("❌ Prediction API error")
+        st.json(response.json())
+        st.stop()
 
     data = response.json()
 
     if "predicted_personality" not in data:
-    st.error("❌ Invalid API response")
-    st.json(data)
-    st.stop()
+        st.error("❌ Invalid API response")
+        st.json(data)
+        st.stop()
 
     personality = data["predicted_personality"]
 
@@ -307,6 +307,7 @@ if st.button("✨ Reveal My Personality"):
         "personality_card.gif",
         "image/gif"
     )
+
 
 
 
