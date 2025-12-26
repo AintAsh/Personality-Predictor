@@ -39,7 +39,11 @@ h1, h2, h3 {
 # ==============================
 # HEADER
 # ==============================
-st.markdown("<h1 style='text-align:center;'>🧠 Personality AI</h1>", unsafe (True))
+st.markdown(
+    "<h1 style='text-align:center;'>🧠 Personality AI</h1>",
+    unsafe_allow_html=True
+)
+
 st.markdown(
     "<p style='text-align:center;'>Discover your personality • Trading-card style ✨</p>",
     unsafe_allow_html=True
@@ -305,3 +309,4 @@ if st.button("✨ Reveal My Personality"):
         "personality_card.gif",
         "image/gif"
     )
+
