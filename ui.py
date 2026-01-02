@@ -3,6 +3,7 @@
 # ==============================
 import streamlit as st
 import streamlit.components.v1 as components
+import requests
 import random
 import base64
 import io
@@ -17,6 +18,11 @@ st.set_page_config(
     page_icon="🧠",
     layout="centered"
 )
+
+# ==============================
+# API CONFIG
+# ==============================
+API_URL = "https://personality-predictor-1.onrender.com/predict"
 
 # ==============================
 # GLOBAL STYLE
@@ -73,21 +79,8 @@ with c3:
     deep_reflection = st.slider("🤔 Deep Reflection", 0, 10, 5)
 
 # ==============================
-# PERSONALITY LOGIC
+# UI HELPERS
 # ==============================
-def get_personality():
-    avg = (
-        social_energy + talkativeness + leadership +
-        empathy + group_comfort + adventurousness
-    ) / 6
-
-    if avg >= 7:
-        return "Extrovert"
-    elif avg >= 5:
-        return "Ambivert"
-    else:
-        return "Introvert"
-
 def one_liner():
     return "Balanced, adaptive, and quietly confident — certified main-character energy ⚖️"
 
@@ -100,9 +93,6 @@ def five_points():
         "Comfortable with calculated risks 🏔️"
     ]
 
-# ==============================
-# STATS (0–100)
-# ==============================
 def compute_stats():
     return {
         "Power": int((leadership + social_energy) / 2 * 10),
@@ -113,26 +103,13 @@ def compute_stats():
     }
 
 # ==============================
-# RARITY BORDER
-# ==============================
-def get_border_color(score):
-    if score >= 85:
-        return (255, 215, 0)   # Gold
-    elif score >= 65:
-        return (0, 200, 255)   # Cyan
-    else:
-        return (160, 160, 160) # Gray
-
-# ==============================
 # CHARACTER IMAGE
 # ==============================
 def get_character_image():
     path = Path("assets/characters")
     images = list(path.glob("*.png"))
-
     if not images:
         return None
-
     return random.choice(images)
 
 def image_to_base64(img_path):
@@ -163,34 +140,31 @@ def get_card_html(name, personality, score, summary, points, stats, img_path):
 <style>
 .card {{
     width: 380px;
-    height: 700px;
+    height: 720px;
     padding: 18px;
     border-radius: 28px;
     background: #0b0b0b;
     color: white;
-    border: 6px solid #666;
+    border: 6px solid #888;
+    font-family: Arial;
 }}
-
 .character img {{
     width: 100%;
     height: 240px;
     object-fit: cover;
     border-radius: 16px;
 }}
-
 .stat {{
     display: grid;
     grid-template-columns: 70px 1fr 30px;
     gap: 6px;
     font-size: 0.7rem;
 }}
-
 .bar-bg {{
     background: rgba(255,255,255,0.15);
     height: 8px;
     border-radius: 6px;
 }}
-
 .bar-fill {{
     height: 100%;
     background: white;
@@ -219,10 +193,18 @@ def generate_png_card(name, personality, score, summary, points, stats, img_path
     try:
         title_font = ImageFont.truetype("arialbd.ttf", 60)
         text_font = ImageFont.truetype("arial.ttf", 40)
+        watermark_font = ImageFont.truetype("arial.ttf", 28)
     except:
-        title_font = text_font = ImageFont.load_default()
+        title_font = text_font = watermark_font = ImageFont.load_default()
 
-    border_color = get_border_color(score)
+    # Border color
+    if score >= 85:
+        border_color = (255, 215, 0)
+    elif score >= 65:
+        border_color = (0, 200, 255)
+    else:
+        border_color = (160, 160, 160)
+
     draw.rectangle([0, 0, W, H], outline=border_color, width=24)
 
     draw.text((60, 40), f"{name} · {personality} · HP {score}", fill="white", font=title_font)
@@ -240,23 +222,10 @@ def generate_png_card(name, personality, score, summary, points, stats, img_path
         y += 70
 
     draw.text((120, y+20), summary, fill="white", font=text_font)
-    # ==============================
-    # WATERMARK (BOTTOM RIGHT)
-    # ==============================
-    watermark_text = "PERSONALITY AI · Made by Om"
 
-    try:
-        watermark_font = ImageFont.truetype("arial.ttf", 28)
-    except:
-        watermark_font = ImageFont.load_default()
-
-    text_w, text_h = draw.textbbox((0, 0), watermark_text, font=watermark_font)[2:]
-    draw.text(
-        (W - text_w - 40, H - text_h - 30),
-        watermark_text,
-        fill=(180, 180, 180),
-        font=watermark_font
-    )
+    watermark = "PERSONALITY AI · Made by Om"
+    w, h = draw.textbbox((0,0), watermark, font=watermark_font)[2:]
+    draw.text((W-w-40, H-h-30), watermark, fill=(180,180,180), font=watermark_font)
 
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
@@ -267,7 +236,44 @@ def generate_png_card(name, personality, score, summary, points, stats, img_path
 # ACTION
 # ==============================
 if st.button("✨ Reveal My Personality"):
-    personality = get_personality()
+
+    payload = {
+        "social_energy": social_energy,
+        "alone_time_preference": 10 - social_energy,
+        "talkativeness": talkativeness,
+        "deep_reflection": deep_reflection,
+        "group_comfort": group_comfort,
+        "party_liking": social_energy,
+        "listening_skill": empathy,
+        "empathy": empathy,
+        "creativity": creativity,
+        "organization": planning,
+        "leadership": leadership,
+        "risk_taking": adventurousness,
+        "public_speaking_comfort": talkativeness,
+        "curiosity": curiosity,
+        "routine_preference": 10 - adventurousness,
+        "excitement_seeking": adventurousness,
+        "friendliness": empathy,
+        "emotional_stability": emotional_stability,
+        "planning": planning,
+        "spontaneity": adventurousness,
+        "adventurousness": adventurousness,
+        "reading_habit": curiosity,
+        "sports_interest": adventurousness,
+        "online_social_usage": social_energy,
+        "travel_desire": adventurousness,
+        "gadget_usage": curiosity,
+        "work_style_collaborative": group_comfort,
+        "decision_speed": leadership,
+        "stress_handling": stress_handling
+    }
+
+    response = requests.post(API_URL, json=payload)
+    data = response.json()
+
+    personality = data["predicted_personality"]
+
     score = int((social_energy + leadership + creativity + adventurousness) / 4 * 10)
     stats = compute_stats()
     img_path = get_character_image()
@@ -282,7 +288,7 @@ if st.button("✨ Reveal My Personality"):
             stats,
             img_path
         ),
-        height=760,
+        height=780,
         scrolling=False
     )
 
