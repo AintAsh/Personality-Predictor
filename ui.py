@@ -2,9 +2,12 @@
 # IMPORTS
 # ==============================
 import streamlit as st
-import requests
-from PIL import Image, ImageDraw, ImageFont
+import streamlit.components.v1 as components
+import random
+import base64
 import io
+from pathlib import Path
+from PIL import Image, ImageDraw, ImageFont
 
 # ==============================
 # PAGE CONFIG
@@ -12,26 +15,24 @@ import io
 st.set_page_config(
     page_title="Personality AI",
     page_icon="🧠",
-    layout="wide"
+    layout="centered"
 )
 
 # ==============================
-# BACKGROUND STYLE
+# GLOBAL STYLE
 # ==============================
 st.markdown("""
 <style>
 .stApp {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    color: #ffffff;
+    background: radial-gradient(circle at top, #0f2027, #000);
+    color: white;
 }
-h1, h2, h3 {
-    color: #eafcff;
-}
-.stButton > button {
-    background: linear-gradient(90deg, #00f5d4, #00bbf9);
-    color: #003049;
+.stButton>button {
+    background: linear-gradient(90deg, #00ffd5, #00aaff);
+    color: black;
     border-radius: 30px;
-    font-size: 18px;
+    font-weight: bold;
+    padding: 10px 24px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -39,27 +40,14 @@ h1, h2, h3 {
 # ==============================
 # HEADER
 # ==============================
-st.markdown(
-    "<h1 style='text-align:center;'>🧠 Personality AI</h1>",
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    "<p style='text-align:center;'>Discover your personality • Trading-card style ✨</p>",
-    unsafe_allow_html=True
-)
+st.markdown("<h1 style='text-align:center;'>🧠 Personality AI</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Anime-style personality cards ✨</p>", unsafe_allow_html=True)
 st.divider()
 
 # ==============================
-# FASTAPI URL (RENDER)
+# USER NAME
 # ==============================
-API_URL = "https://personality-predictor-7xm4.onrender.com/predict"
-
-# ==============================
-# SLIDER HELPER
-# ==============================
-def vibe_slider(label):
-    return st.slider(label, 0, 10, 5, step=1)
+name = st.text_input("Your Name", "Om")
 
 # ==============================
 # INPUTS (12 SLIDERS)
@@ -67,245 +55,250 @@ def vibe_slider(label):
 c1, c2, c3 = st.columns(3)
 
 with c1:
-    social_energy = vibe_slider("⚡ Social Energy")
-    creativity = vibe_slider("🎨 Creativity")
-    empathy = vibe_slider("❤️ Empathy")
-    emotional_stability = vibe_slider("🧘 Emotional Stability")
+    social_energy = st.slider("⚡ Social Energy", 0, 10, 5)
+    empathy = st.slider("❤️ Empathy", 0, 10, 5)
+    curiosity = st.slider("🧠 Curiosity", 0, 10, 5)
+    stress_handling = st.slider("🛡️ Stress Handling", 0, 10, 5)
 
 with c2:
-    talkativeness = vibe_slider("🗣️ Talkativeness")
-    curiosity = vibe_slider("🧠 Curiosity")
-    leadership = vibe_slider("👑 Leadership")
-    planning = vibe_slider("📋 Planning")
+    talkativeness = st.slider("🗣️ Talkativeness", 0, 10, 5)
+    creativity = st.slider("🎨 Creativity", 0, 10, 5)
+    planning = st.slider("📋 Planning", 0, 10, 5)
+    emotional_stability = st.slider("🧘 Emotional Stability", 0, 10, 5)
 
 with c3:
-    group_comfort = vibe_slider("👥 Group Comfort")
-    deep_reflection = vibe_slider("🤔 Deep Reflection")
-    adventurousness = vibe_slider("🏔️ Adventurousness")
-    stress_handling = vibe_slider("🛡️ Stress Handling")
-
-st.divider()
+    group_comfort = st.slider("👥 Group Comfort", 0, 10, 5)
+    leadership = st.slider("👑 Leadership", 0, 10, 5)
+    adventurousness = st.slider("🏔️ Adventurousness", 0, 10, 5)
+    deep_reflection = st.slider("🤔 Deep Reflection", 0, 10, 5)
 
 # ==============================
-# PERSONALITY INSIGHTS
+# PERSONALITY LOGIC
 # ==============================
-def one_liner(p):
+def get_personality():
     avg = (
-        p["social_energy"] +
-        p["creativity"] +
-        p["leadership"] +
-        p["empathy"] +
-        p["adventurousness"] +
-        p["stress_handling"]
+        social_energy + talkativeness + leadership +
+        empathy + group_comfort + adventurousness
     ) / 6
 
     if avg >= 7:
-        return "Expressive, emotionally aware, and experience-driven — certified main-character energy ✨"
+        return "Extrovert"
     elif avg >= 5:
-        return "Balanced, thoughtful, and socially adaptive with calm confidence ⚖️"
+        return "Ambivert"
     else:
-        return "Low-key, introspective, and emotionally grounded — quiet depth 🌙"
+        return "Introvert"
 
-def five_points(p):
+def one_liner():
+    return "Balanced, adaptive, and quietly confident — certified main-character energy ⚖️"
+
+def five_points():
     return [
-        "People recharge your energy ⚡" if p["social_energy"] > 6 else "You value selective connections 🌙",
-        "Creative ideas flow naturally 🎨" if p["creativity"] > 6 else "Logic and structure guide you 📐",
-        "Emotionally perceptive and empathetic ❤️" if p["empathy"] > 6 else "Emotionally steady and controlled 🧊",
-        "Leadership comes naturally 👑" if p["leadership"] > 6 else "You stabilize teams 🤝",
-        "You seek experiences over comfort 🏔️" if p["adventurousness"] > 6 else "You prefer familiarity 🏡"
+        "Selective but meaningful connections 🌙",
+        "Creative yet grounded thinking 🎨",
+        "Emotionally calm under pressure 🧊",
+        "Reliable team presence 🤝",
+        "Comfortable with calculated risks 🏔️"
     ]
 
 # ==============================
-# RARITY LOGIC
+# STATS (0–100)
 # ==============================
-def get_rarity(score):
-    if score >= 80:
-        return "LEGENDARY", (255, 215, 0)
-    elif score >= 60:
-        return "RARE", (0, 255, 200)
-    else:
-        return "COMMON", (180, 180, 180)
-
-# ==============================
-# PERSONALITY COLOR THEMES
-# ==============================
-def personality_theme(personality):
-    themes = {
-        "Extrovert": ((255, 90, 90), (255, 180, 150)),
-        "Introvert": ((90, 130, 255), (170, 210, 255)),
-        "Ambivert": ((0, 200, 170), (130, 255, 230)),
+def compute_stats():
+    return {
+        "Power": int((leadership + social_energy) / 2 * 10),
+        "Creativity": int((creativity + curiosity) / 2 * 10),
+        "Control": int((planning + emotional_stability) / 2 * 10),
+        "Chaos": int(adventurousness * 10),
+        "Empathy": int((empathy + group_comfort) / 2 * 10),
     }
-    return themes.get(personality, ((120, 120, 120), (200, 200, 200)))
 
 # ==============================
-# TEXT WRAPPING (FONT SAFE)
+# RARITY BORDER
 # ==============================
-def draw_wrapped_text(draw, text, x, y, font, max_width, gap=6):
-    words = text.split()
-    line = ""
-    for word in words:
-        test = line + word + " "
-        w = draw.textbbox((0, 0), test, font=font)[2]
-        if w <= max_width:
-            line = test
-        else:
-            draw.text((x, y), line, fill=(235, 235, 235), font=font)
-            y += 32 + gap
-            line = word + " "
-    if line:
-        draw.text((x, y), line, fill=(235, 235, 235), font=font)
-        y += 32 + gap
-    return y
+def get_border_color(score):
+    if score >= 85:
+        return (255, 215, 0)   # Gold
+    elif score >= 65:
+        return (0, 200, 255)   # Cyan
+    else:
+        return (160, 160, 160) # Gray
 
 # ==============================
-# ANIMATED GIF CARD
+# CHARACTER IMAGE
 # ==============================
-def generate_animated_gif_card(personality, score, summary, points):
-    W, H = 900, 1300
-    frames = []
+def get_character_image():
+    path = Path("assets/characters")
+    images = list(path.glob("*.png"))
 
-    rarity, rarity_color = get_rarity(score)
-    bg1, bg2 = personality_theme(personality)
+    if not images:
+        return None
+
+    return random.choice(images)
+
+def image_to_base64(img_path):
+    encoded = base64.b64encode(img_path.read_bytes()).decode()
+    return f"data:image/png;base64,{encoded}"
+
+# ==============================
+# HTML CARD (PREVIEW)
+# ==============================
+def get_card_html(name, personality, score, summary, points, stats, img_path):
+    image_data = image_to_base64(img_path) if img_path else ""
+
+    bars = ""
+    for stat, value in stats.items():
+        bars += f"""
+        <div class="stat">
+            <span>{stat}</span>
+            <div class="bar-bg">
+                <div class="bar-fill" style="width:{value}%"></div>
+            </div>
+            <span>{value}</span>
+        </div>
+        """
+
+    abilities = "".join([f"<li>{p}</li>" for p in points])
+
+    return f"""
+<style>
+.card {{
+    width: 380px;
+    height: 700px;
+    padding: 18px;
+    border-radius: 28px;
+    background: #0b0b0b;
+    color: white;
+    border: 6px solid #666;
+}}
+
+.character img {{
+    width: 100%;
+    height: 240px;
+    object-fit: cover;
+    border-radius: 16px;
+}}
+
+.stat {{
+    display: grid;
+    grid-template-columns: 70px 1fr 30px;
+    gap: 6px;
+    font-size: 0.7rem;
+}}
+
+.bar-bg {{
+    background: rgba(255,255,255,0.15);
+    height: 8px;
+    border-radius: 6px;
+}}
+
+.bar-fill {{
+    height: 100%;
+    background: white;
+    border-radius: 6px;
+}}
+</style>
+
+<div class="card">
+    <h3>{name} · {personality} · HP {score}</h3>
+    <div class="character"><img src="{image_data}"></div>
+    {bars}
+    <p>{summary}</p>
+    <ul>{abilities}</ul>
+    <small>PERSONALITY AI · Made by Om</small>
+</div>
+"""
+
+# ==============================
+# PNG CARD GENERATION
+# ==============================
+def generate_png_card(name, personality, score, summary, points, stats, img_path):
+    W, H = 1200, 2000
+    img = Image.new("RGB", (W, H), (10, 10, 10))
+    draw = ImageDraw.Draw(img)
 
     try:
-        title_f = ImageFont.truetype("arialbd.ttf", 52)
-        heading_f = ImageFont.truetype("arialbd.ttf", 36)
-        text_f = ImageFont.truetype("arial.ttf", 28)
-        small_f = ImageFont.truetype("arial.ttf", 22)
+        title_font = ImageFont.truetype("arialbd.ttf", 60)
+        text_font = ImageFont.truetype("arial.ttf", 40)
     except:
-        title_f = heading_f = text_f = small_f = ImageFont.load_default()
+        title_font = text_font = ImageFont.load_default()
 
-    for glow in range(30, 110, 15):
-        img = Image.new("RGBA", (W, H))
-        draw = ImageDraw.Draw(img)
+    border_color = get_border_color(score)
+    draw.rectangle([0, 0, W, H], outline=border_color, width=24)
 
-        for y in range(H):
-            mix = y / H
-            r = int(bg1[0] * (1 - mix) + bg2[0] * mix)
-            g = int(bg1[1] * (1 - mix) + bg2[1] * mix)
-            b = int(bg1[2] * (1 - mix) + bg2[2] * mix)
-            draw.line([(0, y), (W, y)], fill=(r, g, b))
+    draw.text((60, 40), f"{name} · {personality} · HP {score}", fill="white", font=title_font)
 
-        glow_layer = Image.new("RGBA", (W - 40, H - 40), (*rarity_color, glow))
-        img.paste(glow_layer, (20, 20), glow_layer)
+    if img_path:
+        char = Image.open(img_path).convert("RGBA").resize((900, 900))
+        img.paste(char, (150, 120), char)
 
-        card = Image.new("RGBA", (W - 80, H - 80), (18, 38, 48, 240))
-        img.paste(card, (40, 40), card)
+    y = 1100
+    for stat, value in stats.items():
+        draw.text((120, y), stat, fill="white", font=text_font)
+        draw.rectangle([320, y+15, 900, y+35], fill=(40,40,40))
+        draw.rectangle([320, y+15, 320 + int(580 * value / 100), y+35], fill=border_color)
+        draw.text((930, y), str(value), fill="white", font=text_font)
+        y += 70
 
-        draw = ImageDraw.Draw(img)
+    draw.text((120, y+20), summary, fill="white", font=text_font)
+    # ==============================
+    # WATERMARK (BOTTOM RIGHT)
+    # ==============================
+    watermark_text = "PERSONALITY AI · Made by Om"
 
-        x, y = 70, 60
-        max_w = W - 160
+    try:
+        watermark_font = ImageFont.truetype("arial.ttf", 28)
+    except:
+        watermark_font = ImageFont.load_default()
 
-        draw.text((x + 180, y), "PERSONALITY AI", fill=(235, 255, 255), font=title_f)
-        y += 80
-
-        badge = Image.new("RGBA", (320, 60), (*rarity_color, 210))
-        img.paste(badge, (x, y), badge)
-        draw.text((x + 20, y + 15), personality.upper(), fill=(15, 30, 40), font=heading_f)
-        y += 90
-
-        draw.text((x, y), "POWER", fill=(200, 255, 245), font=small_f)
-        y += 26
-        draw.text((x, y), f"{score}/100", fill=rarity_color, font=heading_f)
-        y += 65
-
-        draw.text((x, y), "DESCRIPTION", fill=(200, 255, 245), font=small_f)
-        y += 30
-        y = draw_wrapped_text(draw, summary, x, y, text_f, max_w)
-        y += 25
-
-        draw.text((x, y), "ABILITIES", fill=(200, 255, 245), font=heading_f)
-        y += 45
-
-        for p in points:
-            y = draw_wrapped_text(draw, f"• {p}", x + 10, y, text_f, max_w)
-
-        draw.text((x, H - 80), f"RARITY: {rarity}", fill=rarity_color, font=small_f)
-        draw.text((W - 260, H - 80), "Made by Om", fill=(200, 255, 255), font=small_f)
-
-        frames.append(img)
+    text_w, text_h = draw.textbbox((0, 0), watermark_text, font=watermark_font)[2:]
+    draw.text(
+        (W - text_w - 40, H - text_h - 30),
+        watermark_text,
+        fill=(180, 180, 180),
+        font=watermark_font
+    )
 
     buffer = io.BytesIO()
-    frames[0].save(buffer, format="GIF", save_all=True,
-                   append_images=frames[1:], duration=120, loop=0)
+    img.save(buffer, format="PNG")
     buffer.seek(0)
     return buffer
 
 # ==============================
-# BUTTON + PREDICTION
+# ACTION
 # ==============================
 if st.button("✨ Reveal My Personality"):
+    personality = get_personality()
+    score = int((social_energy + leadership + creativity + adventurousness) / 4 * 10)
+    stats = compute_stats()
+    img_path = get_character_image()
 
-    payload = {
-        "social_energy": social_energy,
-        "alone_time_preference": 10 - social_energy,
-        "talkativeness": talkativeness,
-        "deep_reflection": deep_reflection,
-        "group_comfort": group_comfort,
-        "party_liking": social_energy,
-        "listening_skill": empathy,
-        "empathy": empathy,
-        "creativity": creativity,
-        "organization": curiosity,
-        "leadership": leadership,
-        "risk_taking": adventurousness,
-        "public_speaking_comfort": talkativeness,
-        "curiosity": curiosity,
-        "routine_preference": 10 - adventurousness,
-        "excitement_seeking": adventurousness,
-        "friendliness": empathy,
-        "emotional_stability": emotional_stability,
-        "planning": planning,
-        "spontaneity": adventurousness,
-        "adventurousness": adventurousness,
-        "reading_habit": curiosity,
-        "sports_interest": adventurousness,
-        "online_social_usage": social_energy,
-        "travel_desire": adventurousness,
-        "gadget_usage": curiosity,
-        "work_style_collaborative": group_comfort,
-        "decision_speed": leadership,
-        "stress_handling": stress_handling
-    }
-
-    try:
-        response = requests.post(API_URL, json=payload, timeout=20)
-    except requests.exceptions.RequestException as e:
-        st.error("❌ Could not connect to prediction API")
-        st.write(str(e))
-        st.stop()
-
-    if response.status_code != 200:
-        st.error("❌ Prediction API error")
-        st.json(response.json())
-        st.stop()
-
-    data = response.json()
-
-    if "predicted_personality" not in data:
-        st.error("❌ Invalid API response")
-        st.json(data)
-        st.stop()
-
-    personality = data["predicted_personality"]
-
-    score = round(
-        (social_energy + creativity + leadership + adventurousness + talkativeness) / 5 * 10,
-        1
+    components.html(
+        get_card_html(
+            name,
+            personality,
+            score,
+            one_liner(),
+            five_points(),
+            stats,
+            img_path
+        ),
+        height=760,
+        scrolling=False
     )
 
-    summary = one_liner(payload)
-    points = five_points(payload)
-
-    st.success(f"🎯 Predicted Personality: {personality}")
-    st.write(summary)
-
-    gif_card = generate_animated_gif_card(personality, score, summary, points)
+    png = generate_png_card(
+        name,
+        personality,
+        score,
+        one_liner(),
+        five_points(),
+        stats,
+        img_path
+    )
 
     st.download_button(
-        "🎴 Download Animated Personality Card",
-        gif_card,
-        "personality_card.gif",
-        "image/gif"
+        "⬇️ Download Personality Card (PNG)",
+        png,
+        file_name="personality_card.png",
+        mime="image/png"
     )
